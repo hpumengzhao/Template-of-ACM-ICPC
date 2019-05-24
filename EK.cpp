@@ -38,7 +38,7 @@ bool bfs(int s,int t){
 				vis[v]=1;
 				pre[v].id=i;
 				pre[v].v=u;
-				if(v==t) return 1;//存在增广路
+				if(v==t) return 1;
 				q.push(v); 
 			}
 		}
