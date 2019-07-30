@@ -1,55 +1,46 @@
-# include<bits/stdc++.h>
+#include<bits/stdc++.h>
 
 using namespace std;
-const int maxn=1000000+10;
-int rt[maxn],ls[maxn*2],rs[maxn*2],sum[maxn*2];
-int a[maxn],b[maxn];
-int tot,N,n,q;
-void build(int& o,int l,int r){
-	o=++tot;
-	sum[o]=0;
-	if(l==r) return ;
-	int m=(l+r)/2;
-	build(ls[o],l,m);
-	build(rs[o],m+1,r);
+const int N = 1e5+100;
+struct node{
+	int l,r,num;
+}T[N*30];
+vector<int> v;
+int n,m,a[N],t,cnt,roots[N];
+int getid(int x){
+	return lower_bound(v.begin(),v.end(),x)-v.begin()+1;
 }
-void update(int& o,int l,int r,int last,int k){
-	o=++tot;
-	ls[o]=ls[last];
-	rs[o]=rs[last];
-	sum[o]=sum[last]+1;
+void update(int l,int r,int &x,int y,int pos){
+	T[++cnt]=T[y];T[cnt].num++;x=cnt;
 	if(l==r) return ;
-	int m=(l+r)/2;
-	if(k<=m) update(ls[o],l,m,ls[last],k);
-	else update(rs[o],m+1,r,rs[last],k);
+	int mid=(l+r)>>1;
+	if(pos<=mid) update(l,mid,T[x].l,T[y].l,pos);
+	else update(mid+1,r,T[x].r,T[y].r,pos);
 }
-int query(int s,int e,int l,int r,int k){
+int query(int l,int r,int x,int y,int k){
 	if(l==r) return l;
-	int cnt=sum[ls[e]]-sum[ls[s]];
-	int m=(l+r)/2;
-	if(k<=cnt) return query(ls[s],ls[e],l,m,k);
-	else return query(rs[s],rs[e],m+1,r,k-cnt);
+	int sum=T[T[x].l].num-T[T[y].l].num;
+	int mid=(l+r)>>1;
+	if(sum>=k) return query(l,mid,T[x].l,T[y].l,k);
+	else return query(mid+1,r,T[x].r,T[y].r,k-sum);
 }
-int main()
-{
-	int t;
-	int l,r,k;
+int main(){
 	scanf("%d",&t);
 	while(t--){
-		scanf("%d %d",&n,&q);
+		v.clear();
+		cnt=0;
+		scanf("%d %d",&n,&m);
 		for(int i=1;i<=n;i++){
 			scanf("%d",&a[i]);
-			b[i]=a[i];
+			v.push_back(a[i]);
 		}
-		tot=0;
-		sort(b+1,b+n+1);
-		N=unique(b+1,b+n+1)-(b+1);
-		build(rt[0],1,N);
-		for(int i=1;i<=n;i++) update(rt[i],1,N,rt[i-1],lower_bound(b+1,b+N+1,a[i])-b);
-		while(q--){
+		sort(v.begin(),v.end());
+		v.erase(unique(v.begin(),v.end()),v.end());
+		for(int i=1;i<=n;i++) update(1,n,roots[i],roots[i-1],getid(a[i]));
+		while(m--){
+			int l,r,k;
 			scanf("%d %d %d",&l,&r,&k);
-			int ans=query(rt[l-1],rt[r],1,N,k);
-			printf("%d\n",b[ans]);
+			printf("%d\n",v[query(1,n,roots[r],roots[l-1],k)-1]);
 		}
 	}
 	return 0;
