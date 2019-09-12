@@ -1,0 +1,12 @@
+rep(k,1,n){
+    rep(i,1,k-1){
+        rep(j,1,i-1){
+            ans=min(ans,dis[i][j]+val[i][k]+val[k][j]);
+        }
+    }
+    rep(i,1,n){
+        rep(j,1,n){
+            dis[i][j]=min(dis[i][j],dis[i][k]+dis[k][j]);
+        }
+    }
+}
