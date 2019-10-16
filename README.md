@@ -1,2 +1,2 @@
 # Template-of-ACM-ICPC
-#Author:Codancer & Dicer
+# Author:Codancer & Dicer
