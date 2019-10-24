@@ -184,98 +184,67 @@ int solve(){//求b的LIS
 \section{图论}
 \subsection{Dinic最大流}
 \begin{lstlisting}
-#include<iostream>
-#include<algorithm>
-#include<string.h>
-#include<cstdio>
-#include<queue>
+二分图最大匹配
+#include<bits/stdc++.h>
+
 using namespace std;
+const int N = 3000;
 const int INF = 0x3f3f3f3f;
-typedef long long ll;
-
-
-
-
-//Dinic最大流, 节点编号从0开始 
-struct MaxFlow{
-    const static ll MAX_V = 1005;
-    ll V;
-    //终点、容量、反向边 
-    struct edge{
-        ll to, cap, rev;
-    };
-    vector<edge> G[MAX_V];
-    ll level[MAX_V];//顶点到源点的距离标号 
-    ll iter[MAX_V];// 当前弧，在其之前的边已经没有用了
-
-    void add_edge(ll from, ll to, ll cap){
-        G[from].push_back((edge){to, cap, (ll)G[to].size()});
-        G[to].push_back((edge){from, 0, (ll)G[from].size()-1});
-    } 
-
-    // 通过BFS计算从源点出发的距离标号 
-    void bfs(ll s){
-        fill(level, level + V, -1);
-        queue<ll> que;
-        level[s] = 0;
-        que.push(s);
-        while (!que.empty()){
-            ll v = que.front();
-            que.pop();
-            for (ll i=0; i< G[v].size(); i++){
-                edge& e = G[v][i];
-                if (e.cap > 0 && level[e.to] < 0){
-                    level[e.to] = level[v] + 1;
-                    que.push(e.to);
-                }
-            }
+int S,T,n,m,w[N],dep[N],head[N],to[N],num=1,sum=0,x,nxt[N];
+bool vis[N];
+void add(int u,int v,int ww){
+    num++;
+    to[num]=v;nxt[num]=head[u];w[num]=ww;head[u]=num;
+    num++;
+    to[num]=u;nxt[num]=head[v];w[num]=0;head[v]=num;
+}
+queue<int> q;
+bool bfs(){
+    while(!q.empty()) q.pop();
+    memset(vis,0,sizeof(vis));
+    while(!q.empty()) q.pop();
+    vis[S]=1;q.push(S);dep[S]=1;
+    while(!q.empty()){
+        int u=q.front();q.pop();
+        for(int i=head[u];i;i=nxt[i]){
+            int v=to[i];
+            if(vis[v]||w[i]<=0) continue;
+            dep[v]=dep[u]+1;
+            vis[v]=1;q.push(v);
         }
     }
-
-    //通过DFS寻找增广路 
-    ll dfs(ll v, ll t, ll f){
-        if (v == t)
-            return f;
-        for (ll &i = iter[v]; i < G[v].size(); i++){
-            edge& e = G[v][i];
-            if (e.cap > 0 && level[v] < level[e.to]){
-                ll d = dfs(e.to, t, min(f, e.cap));
-                if (d > 0){
-                    e.cap -= d;
-                    G[e.to][e.rev].cap += d;
-                    return d;
-                }
-            }
-        }
-        return 0;
+    return vis[T];
+}
+int dfs(int u,int d){
+    if(u==T||d==0){
+        return d;
     }
-
-
-
-    //求解从s到t的最大流 
-    ll max_flow(ll s, ll t){
-        ll flow = 0;
-        for (;;){
-            bfs(s);
-            if(level[t] < 0)
-                return flow;
-            fill(iter, iter + V, 0);
-            ll f;
-            while ((f = dfs(s, t, INF)) > 0){
-                flow += f;
-            }
-        }
+    int ret=0;
+    for(int i=head[u];i;i=nxt[i]){
+        int v=to[i];
+        if(dep[v]!=dep[u]+1||w[i]<=0) continue;
+        int flow=dfs(v,min(d,w[i]));
+        d-=flow;ret+=flow;
+        w[i]-=flow;w[i^1]+=flow;
+        if(d==0) break;
     }
-
-
-
-    void init(ll n = 0){
-        for (ll i = 0; i < V; i++){
-            G[i].clear();
-        }
-        V = n;
+    if(ret==0) dep[u]=-1;
+    return ret;
+}
+int main(){
+    scanf("%d %d",&n,&m);
+    S=0;T=n+1;
+    int u,v;
+    for(int i=1;i<=m;i++) add(S,i,1);
+    for(int i=m+1;i<=n;i++) add(i,T,1);
+    while(~scanf("%d %d",&u,&v)){
+        add(u,v,1);
     }
-}mf;
+    while(bfs()) sum+=dfs(S,INF);
+    printf("%d\n",sum);
+    return 0;
+}
+
 \end{lstlisting}
 \subsection{倍增求解LCA}
 \begin{lstlisting}
@@ -731,6 +700,84 @@ int main(int argc, char const *argv[])
     return 0;
 }
 \end{lstlisting}
+\subsection{点分治}
+\begin{lstlisting}
+typedef long long ll;
+const int MOD = 1e9+7;
+const int MAXN = 1e4 + 7;
+
+int n, root, size, tot = 0;
+int son[MAXN], f[MAXN], head[MAXN];
+int dep[MAXN]; bool vis[MAXN];
+struct node{
+    int u, w, nxt;
+}; vector<node> E;
+void add(int u, int v, int w) {
+    E.push_back(node{v, w, head[u]});
+    head[u] = tot++;
+}
+void init() {
+    memset(head, -1, sizeof head);
+    memset(vis, 0, sizeof vis);
+    E.clear(); tot = 0;
+}
+void get_rt(int x, int fa = 0) {
+    son[x] = 1; f[x] = 0;
+    for(int j = head[x]; ~j; j = E[j].nxt) {
+        int u = E[j].u, w = E[j].w;
+        if(vis[u] || u == fa)   continue;
+        get_rt(u, x);
+        son[x] += son[u];
+        f[x] = max(f[x], son[u]);
+    }
+    f[x] = max(f[x], size - son[x]);
+    if(f[x] < f[root]) root = x;
+}
+
+void get_dep(int x, int fa) {
+    //得到每个节点到根节点的距离
+    for(int j = head[x]; ~j; j = E[j].nxt) {
+        int u = E[j].u, w = E[j].w;
+        if(vis[u] || u == fa)   continue;
+        dep[u] = dep[x] + w;
+        get_dep(u, x);
+    }
+}
+void calc(int x, int op) {
+    get_dep(x, 0);
+    //得到深度，处理答案
+    //updata ans
+}
+void solve(int x) {
+    dep[x] = 0; calc(x, 1); vis[x] = 1;
+    for(int j = head[x]; ~j; j = E[j].nxt) {
+        int u = E[j].u, w = E[j].w;
+        if(vis[u])  continue;
+        dep[u] = w; calc(u, -1);
+        root = 0; size = son[u];
+        get_rt(u);
+        solve(root);
+    }
+}
+int main(int argc, char const *argv[])
+{
+    while(~scanf("%d", &n)) {
+        init();
+        int u, v, w;
+        rep(i, 1, n-1) {
+            scanf("%d %d %d", &u, &v, &w);
+            add(u, v, w); add(v, u, w);
+        }
+        root = 0; f[0] = size = n;
+        get_rt(1, 0);
+        //init ans
+        solve(root);
+        //print ans
+    }
+    return 0;
+}
+
+\end{lstlisting}
 \section{数学}
 \subsection{整除分块}
 计算$\sum_{i=1}^{n} \lfloor\frac{n}{i}\rfloor$
@@ -792,6 +839,45 @@ void Mobius()
             }
         }
     }
+}
+\end{lstlisting}
+\subsection{高斯消元}
+\begin{lstlisting}
+//计算n*(n+1)矩阵的解，ans[i]即为所求
+#include<bits/stdc++.h>
+
+using namespace std;
+const double eps = 1e-7;
+int n;
+double a[110][110],ans[110];
+void Gauss(int n){
+    for(int i=1;i<=n;i++){
+        int r=i;
+        for(int j=i+1;j<=n;j++){
+            if(fabs(a[r][i])<fabs(a[j][i])){
+                r=j;
+            }
+        }
+        if(fabs(a[r][i])<eps) return ;
+        if(i!=r)swap(a[i],a[r]);
+        double div=a[i][i];
+        for(int j=i;j<=n+1;j++){
+            a[i][j]/=div;
+        }
+        for(int j=i+1;j<=n;j++){
+            div=a[j][i];
+            for(int k=i;k<=n+1;k++){
+                a[j][k]-=a[i][k]*div;
+            }
+        }
+    }
+    ans[n]=a[n][n+1];
+    for(int i=n-1;i>=1;i--){
+        ans[i]=a[i][n+1];
+        for(int j=i+1;j<=n;j++){
+            ans[i]-=(a[i][j]*ans[j]);
+        }
+    }//回带操作
 }
 \end{lstlisting}
 \subsection{Lucas定理求C（n，m）\% P}
@@ -2276,6 +2362,238 @@ while (k < n && i < n && j < n) {
   }
 }
 i = min(i, j);
+\end{lstlisting}
+\section{计算几何}
+\subsection{基本的定义}
+\begin{lstlisting}
+#include<bits/stdc++.h>
+
+using namespace std;
+#define eps = (1e-10);
+//点
+struct Point{
+    double x,y;
+    Point(double _x=0,double _y=0):x(_x),y(_y){}
+    Point operator + (Point p){return Point(x+p.x,y+p.y);}
+    Point operator - (Point p){return Point(x-p.x,y-p.y);}
+    Point operator * (double a){return Point(a*x,a*y);}
+    Point operator / (double a){return Point(x/a,y/a);}
+    double norm(){return x*x+y*y;}//模的平方
+    double ABS() {return sqrt(norm());}//模
+};
+//线段
+struct Segment{
+    Point p1,p2;
+};
+//点积
+double dot(Point a,Point b){
+    return a.x*b.x+a.y*b.y;
+}
+//叉积
+double cross(Point a,Point b){
+    return a.x*b.y-a.y*b.x;
+}
+\end{lstlisting}
+\subsection{点和线}
+\subsubsection{计算投影的坐标}
+\begin{lstlisting}
+//p在S上的投影坐标
+Point Projection(Point p,Segment s){
+    Point alp=p-s.p1;Point beta=s.p2-s.p1;
+    double res=dot(alp,beta)/beta.norm();
+    return s.p1+(beta*res);
+}
+\end{lstlisting}
+\subsubsection{计算p关于线段s的对称点}
+\begin{lstlisting}
+Point Reflection(Point p,Segment s){
+    Point p1=s.p1;Point p2=s.p2;
+    double A=(p1.y-p2.y);
+    double B=-(p1.x-p2.x);
+    double C=(p1.x-p2.x)*p1.y-p1.x*A;
+    return {((B*B-A*A)*p.x-2*A*B*p.y-2*A*C)/(A*A+B*B),((A*A-B*B)*p.y-2*A*B*p.x-2*B*C)/(A*A+B*B)};
+}
+\end{lstlisting}
+\subsubsection{判断线段是否相交}
+\begin{lstlisting}
+bool Intersect(Segment A ,Segment B){
+    if(max(B.p1.x,B.p2.x)<min(A.p1.x,A.p2.x)) return 0;
+    if(max(B.p1.y,B.p2.y)<min(A.p1.y,A.p2.y)) return 0;
+    if(max(A.p1.y,A.p2.y)<min(B.p1.y,B.p2.y)) return 0;
+    if(max(A.p1.x,A.p2.x)<min(B.p1.x,B.p2.x)) return 0;
+    if(cross(A.p1-B.p1,A.p2-B.p1)*cross(A.p1-B.p2,A.p2-B.p2)>0) return 0;
+    if(cross(B.p1-A.p1,B.p2-A.p1)*cross(B.p1-A.p2,B.p2-A.p2)>0) return 0;
+    return 1;
+}
+\end{lstlisting}
+\subsubsection{线段平行和正交判断}
+\begin{lstlisting}
+bool Parallel(Segment a,Segment b){
+    Point alp=a.p2-a.p1;
+    Point beta=b.p2-b.p1;
+    if(cross(alp,beta)==0){
+        return 1;
+    }
+    return 0;
+}
+//判断线段正交
+bool Orthogonal(Segment a,Segment b){
+    Point alp=a.p2-a.p1;
+    Point beta=b.p2-b.p1;
+    if(dot(alp,beta)==0){
+        return 1;
+    }
+    return 0;   
+}
+\end{lstlisting}
+\subsubsection{计算线段的交点}
+\begin{lstlisting}
+Point IntersectPoint(Segment A ,Segment B){
+    double a=A.p1.y-A.p2.y;
+    double b=A.p2.x-A.p1.x;
+    double e=A.p1.x*(A.p1.y-A.p2.y)-A.p1.y*(A.p1.x-A.p2.x);
+    double c=B.p1.y-B.p2.y;
+    double d=B.p2.x-B.p1.x;
+    double f=B.p1.x*(B.p1.y-B.p2.y)-B.p1.y*(B.p1.x-B.p2.x);
+    double ansx=(e*d-f*b)/(a*d-c*b);
+    double ansy=(a*f-c*e)/(a*d-c*b);
+    if(ansx>=0) ansx=fabs(ansx);
+    if(ansy>=0) ansy=fabs(ansy);
+    return {ansx,ansy};  
+}
+\end{lstlisting}
+\subsubsection{点到直线的距离}
+\begin{lstlisting}
+//点到直线的距离
+double PLDis(Point a,Segment s){
+    double A=s.p1.y-s.p2.y;
+    double B=s.p2.x-s.p1.x;
+    double C=(s.p1.x-s.p2.x)*s.p1.y-(s.p1.y-s.p2.y)*s.p1.x;
+    return fabs(A*a.x+B*a.y+C)/sqrt((A*A+B*B));
+}
+\end{lstlisting}
+\subsubsection{点到线段的最近距离}
+\begin{lstlisting}
+double Segdis(Point A ,Segment B){
+    Point alp1=A-B.p1;
+    Point beta1=B.p2-B.p1;
+    Point alp2=A-B.p2;
+    Point beta2=B.p1-B.p2;
+    if(dot(alp1,beta1)<0||dot(alp2,beta2)<0){
+        return min(Pointdis(A,B.p1),Pointdis(A,B.p2));
+    }
+    double a=B.p1.y-B.p2.y;
+    double b=B.p2.x-B.p1.x;
+    double c=B.p1.y*(B.p1.x-B.p2.x)-B.p1.x*(B.p1.y-B.p2.y);
+    return fabs(a*A.x+b*A.y+c)/sqrt(a*a+b*b);
+}
+\end{lstlisting}
+\subsection{多边形}
+\subsubsection{多边形面积}
+\begin{lstlisting}
+vector<Point> polygon;
+double Area(vector<Point> polygon){
+    double ans=0;
+    int n=(int)polygon.size();
+    for(int i=0;i<n;i++){
+        ans+=cross(polygon[i],polygon[(i+1)%n]);
+    }
+    return fabs(ans/2);
+}
+\end{lstlisting}
+\subsubsection{判断多边形是否是凸包}
+\begin{lstlisting}
+bool Isconvex(vector<Point> polygon){
+    int n=(int)polygon.size();
+    polygon.push_back(polygon[0]);
+    polygon.push_back(polygon[2]);
+    for(int i=0;i<n;i++){
+        Point a=polygon[i+1]-polygon[i];
+        Point b=polygon[i+2]-polygon[i+1];
+        if(cross(a,b)<0) return 0;
+    }
+    return 1;
+}
+\end{lstlisting}
+\subsubsection{点和多边形的关系}
+\begin{lstlisting}
+//1代表在多边形上，2代表在内部，0代表在外部
+int Contain(vector<Point> G,Point p){
+    int n = G.size();
+    bool x=0;
+    for(int i=0;i<n;i++){
+        Point a=G[i]-p,b=G[(i+1)%n]-p;
+        if(abs(cross(a,b))<eps && dot(a,b)<eps) return 1;
+        if(a.y>b.y) swap(a,b);
+        if(a.y<eps&&eps<b.y&&cross(a,b)>eps) x=!x;
+    }
+    return (x?2:0);
+}
+\end{lstlisting}
+\subsubsection{计算点集中的凸包}
+\begin{lstlisting}
+vector<Point> Andrew(vector<Point> G){
+    sort(G.begin(),G.end(),cmp);
+    vector<Point> up,down;
+    int n=(int)G.size();
+    up.push_back(G[0]);
+    up.push_back(G[1]);
+    down.push_back(G[n-1]);
+    down.push_back(G[n-2]);
+    for(int i=2;i<n;i++){
+        while(up.size()>1&&cross(up[up.size()-2]-up[up.size()-1],G[i]-up[up.size()-1])<0){
+             up.pop_back();
+        }
+        up.push_back(G[i]);
+    }
+    for(int i=n-3;i>=0;i--){
+         while(down.size()>1&&cross(down[down.size()-2]-down[down.size()-1],G[i]-down[down.size()-1])<0){
+              down.pop_back();
+         }
+         down.push_back(G[i]);       
+    }
+    vector<Point> ans;
+    for(int i=down.size()-1;i>=1;i--) ans.push_back(down[i]);
+    for(int i=up.size()-1;i>=1;i--) ans.push_back(up[i]);
+    return ans;
+}
+\end{lstlisting}
+\subsubsection{直线和圆的交点}
+\begin{lstlisting}
+vector<Point> CCL(Segment s,Point o,double r){
+    vector<Point> res;
+    Point x=Projection(o,s);
+    double dis=PLDis(o,s);
+    if(dis>r){//距离>r没有交点
+        return res;
+    }
+    if(dis==r){//只有一个交点
+        res.push_back(x);
+        res.push_back(x);
+    }
+    double beta=sqrt(r*r-dis*dis);//勾股定理
+    Point pp=s.p2-s.p1;
+    pp=pp/pp.ABS();//单位向量
+    Point ans1=x-pp*beta;
+    Point ans2=x+pp*beta;
+    res.push_back(ans1);
+    res.push_back(ans2);
+    return res;
+}
+\end{lstlisting}
+\subsection{旋转卡壳}
+\subsubsection{计算凸包直径}
+\begin{lstlisting}
+//旋转卡壳计算凸包直径
+double Diameter(vector<Point> G){
+    double ans=0;
+    int n=G.size();
+    for(int i=0,k=0;i<n;i++){
+        while((G[i]-G[k]).norm()<(G[i]-G[(k+1)%n]).norm()) k=(k+1)%n;
+        ans=max(ans,(G[i]-G[k]).ABS());
+    }
+    return ans;
+}
 \end{lstlisting}
 \section{C++ pbds}
 \subsection{头文件}
