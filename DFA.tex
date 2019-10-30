@@ -301,6 +301,92 @@ rep(k,1,n){
     }
 }
 \end{lstlisting}
+\subsection{带权二分图匹配-KM}
+\begin{lstlisting}
+//O(n^3) /by jls
+#include<cstdio>
+#include<iostream>
+#include<string.h>
+#include<queue>
+#include<algorithm> 
+
+using namespace std;
+const int N = 500;
+int n,nx,ny,m,num,w[N][N],boy[N],gir[N],slack[N],pre[N],lx[N],ly[N];
+bool vx[N],vy[N];
+queue<int> q;
+void Changematch(int k){
+	while(pre[k]){
+		boy[k]=pre[k];
+		int ne=gir[pre[k]];
+		gir[boy[k]]=k;
+		k=ne;
+	}
+}
+void Getmatch(int s){
+	while(!q.empty()) q.pop();q.push(s);
+	for(int i=1;i<=n;i++) slack[i]=1e9,vx[i]=vy[i]=pre[i]=0;//初始化
+	while(1){
+		while(!q.empty()){
+			int k=q.front();q.pop();
+			vx[k]=1;
+			int tmp;
+			for(int i=1;i<=n;i++){//增广 
+				if(vy[i]==0&&(tmp=lx[k]+ly[i]-w[k][i])<slack[i]){
+					pre[i]=k;
+					if(tmp==0){
+						if(boy[i]==0){
+							Changematch(i);return ;
+						}
+						vy[i]=1;q.push(boy[i]);
+					}else{
+						slack[i]=tmp;
+					}
+				}
+			}
+		}
+		int delta=1e9,where=0;
+		for(int i=1;i<=n;i++) if(vy[i]==0&&slack[i]<delta) delta=slack[i],where=i;
+		for(int i=1;i<=n;i++){
+			if(vx[i]) lx[i]-=delta;
+			if(vy[i]) ly[i]+=delta;
+			else{
+				slack[i]-=delta;
+			}
+		}
+		if(boy[where]==0){
+			Changematch(where); return ;
+		}
+		vy[where]=1;q.push(boy[where]);
+	} 
+}
+int main(){
+	scanf("%d %d %d",&nx,&ny,&m);
+	n=max(nx,ny);
+	int u,v,ww;
+	long long ans=0;
+	for(int i=1;i<=m;i++){
+		scanf("%d %d %d",&u,&v,&ww);
+		w[u][v]=max(w[u][v],ww);
+	}
+	for(int i=1;i<=n;i++){
+		for(int j=1;j<=n;j++) lx[i]=max(lx[i],w[i][j]); 
+	}
+	for(int i=1;i<=n;i++) Getmatch(i);
+	for(int i=1;i<=n;i++) ans+=(lx[i]+ly[i]);
+	printf("%lld\n",ans);
+	memset(gir,0,sizeof(gir));
+	for(int i=1;i<=ny;i++){
+		if(w[boy[i]][i]) gir[boy[i]]=i;
+		else gir[boy[i]]=0;
+	}
+	for(int i=1;i<=nx;i++){
+		printf("%d ",gir[i]);
+	}
+	puts("");
+	return 0;
+}
+\end{lstlisting}
 \subsection{Tarjan}
 \subsubsection{缩点求SCC}
 \begin{lstlisting}
@@ -357,6 +443,78 @@ for(int i=1;i<=n;i++){
 	if(!dfn[i]) Tarjan(i);
 }
 \end{lstlisting}
+\subsubsection{2-SAT}
+\begin{lstlisting}
+/*
+2-SAT
+SAT是np完全问题，我们讨论的是2-SAT
+对于n个bool变量，m组关系，每组关系有两个条件，只要满足其一即可
+判断能否给这n个变量赋值使其满足条件，并输出变量的值
+*/
+#include<bits/stdc++.h>
+
+using namespace std;
+const int N = 3000+100;
+int n,m,scc,idx,color[N],low[N],dfn[N];
+vector<int> G[N];
+bool is_instack[N];stack<int> sta;
+void init(int n){
+    scc=idx=0;
+    for(int i=1;i<=2*n;i++){
+        low[i]=dfn[i]=is_instack[i]=color[i]=0;
+        G[i].clear();
+    }
+    while(!sta.empty()) sta.pop();
+}
+void Tarjan(int u){
+    low[u]=dfn[u]=++idx;
+    sta.push(u);is_instack[u]=1;
+    for(int v:G[u]){
+        if(!dfn[v]){
+            Tarjan(v);
+            low[u]=min(low[u],low[v]);
+        }else if(is_instack[v]){
+            low[u]=min(low[u],dfn[v]);
+        }
+    }
+    if(low[u]==dfn[u]){
+        ++scc;
+        while(1){
+            int temp=sta.top();
+            color[temp]=scc;
+            is_instack[temp]=0;
+            sta.pop();
+            if(temp==u) break;
+        }
+    }
+}
+//i是妻子，i+n是丈夫
+int main(){
+   while(~scanf("%d %d",&n,&m)){
+        int a,b,va,vb;
+        init(n);
+        for(int i=1;i<=m;i++){
+            scanf("%d %d %d %d",&a,&b,&va,&vb);
+            a++;b++;
+            G[a+n*(va&1)].push_back(b+n*(vb^1));
+            G[b+n*(vb&1)].push_back(a+n*(va^1));
+        }
+        for(int i=1;i<=(n<<1);i++){
+            if(!dfn[i]) Tarjan(i);
+        }
+        bool flag=0;
+        for(int i=1;i<=n;i++){
+            if(color[i]==color[i+n]){
+                puts("NO");
+                flag=1;
+                break;
+            }
+        }
+        if(!flag) puts("YES");
+   }
+    return 0;
+}
+\end{stlisting}
 \subsubsection{求割点}
 割点去掉后各联通快大小
 \begin{lstlisting}
